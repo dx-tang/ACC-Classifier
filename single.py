@@ -27,7 +27,8 @@ def ParsePartTrain(f):
 	for line in open(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
-		tmp.extend(columns[PARTAVG:HOMECONF])
+		tmp.extend(columns[PARTAVG:PARTSKEW])
+		tmp.extend(columns[RECAVG:CONFRATE])
 		X.append(tmp)
 		if (columns[FEATURELEN] <= 2):
 			if (columns[FEATURELEN] == 0):
@@ -153,6 +154,7 @@ def PredictPart(partclf, X_test, Y_test):
 			if (y != 0):
 				ok = 2
 				break
+
 	return result[0], ok
 
 def PredictOCC(occclf, X_test, Y_test):
