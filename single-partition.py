@@ -23,6 +23,7 @@ CONFRATE = 6
 
 def ParseTraining(f):
 	# X is feature, while Y is label
+	# X is feature, while Y is label
 	X = []
 	Y = []
 	for line in open(f):
@@ -31,12 +32,12 @@ def ParseTraining(f):
 		tmp.extend(columns[PARTAVG:PARTSKEW])
 		tmp.extend(columns[RECAVG:CONFRATE])
 		X.append(tmp)
-		if (columns[FEATURELEN] == 0):
+		ok = 1
+		label = columns[FEATURELEN:]
+		if label[0] == 0:
 			Y.extend([0])
 		else:
 			Y.extend([1])
-	#else:
-	#    Y.extend([2])
 	return np.array(X), np.array(Y)
 
 def main():

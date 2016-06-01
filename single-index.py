@@ -80,6 +80,7 @@ def main():
 		tmp.extend(val[HOMECONF:CONFRATE])
 		testOCC.append(tmp)
 		result = indexclf.predict(testOCC)
+		print i," ", result," ", Y_test[i], " ", indexclf.predict_proba(testOCC)
 		#score = occclf.score([val[1:]], [Y_test[i]])
 		#for j, y in enumerate(Y_test[i]):
 		#	if (y != 0):
@@ -97,7 +98,7 @@ def main():
 					ok = 1
 					break
 		if (ok == 0):
-			print i," ",result[0]," ",Y_test[i]," ",tmp
+			print i," ",result[0]," ",Y_test[i]
 			wrong = wrong + 1
 	print "Total: ",(count - wrong)/count
 

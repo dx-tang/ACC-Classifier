@@ -30,11 +30,12 @@ def ParsePartTrain(f):
 		tmp.extend(columns[PARTAVG:PARTSKEW])
 		tmp.extend(columns[RECAVG:CONFRATE])
 		X.append(tmp)
-		if (columns[FEATURELEN] <= 2):
-			if (columns[FEATURELEN] == 0):
-				Y.extend([0])
-			else:
-				Y.extend([1])
+		ok = 1
+		label = columns[FEATURELEN:]
+		if label[0] == 0:
+			Y.extend([0])
+		else:
+			Y.extend([1])
 	return np.array(X), np.array(Y)
 
 def ParseOCCTrain(f):
@@ -64,6 +65,10 @@ def ParsePureTrain(f):
 		X.append(tmp)
 		if (columns[FEATURELEN] == 3):
 			Y.extend([3])
+			if len(columns[FEATURELEN:]) == 2:
+				if columns[FEATURELEN+1] == 4:
+					X.append(tmp)
+					Y.extend([4])
 		elif (columns[FEATURELEN] == 4):
 			Y.extend([4])
 
@@ -154,7 +159,7 @@ def PredictPart(partclf, X_test, Y_test):
 			if (y != 0):
 				ok = 2
 				break
-
+	print result," ",Y_test," ",partclf.predict_proba(testPart)
 	return result[0], ok
 
 def PredictOCC(occclf, X_test, Y_test):
@@ -209,6 +214,7 @@ def main():
 		count = count + 1
 		result, ok = PredictIndex(indexclf, val, Y_test[i])
 		if ok == 0: # Wrong
+			print i, " ", result, " ",Y_test[i]
 			indexWrong = indexWrong+1
 			continue
 		if result == 0: # Using Partitioned Index
@@ -225,9 +231,16 @@ def main():
 			pureCount = pureCount + 1
 			result, ok = PredictPure(pureclf, val, Y_test[i])
 			if ok == 0:
+				print i, " ", result, " ",Y_test[i]
 				pureWrong = pureWrong + 1
 		
 	totalWrong = indexWrong + partWrong + occWrong + pureWrong
+	if partCount == 0:
+		partCount = 1
+	if occCount == 0:
+		occCount = 1
+	if pureCount == 0:
+		pureCount = 1
 	print "Total ", count, " ", count - totalWrong, " ",(count - totalWrong)/count
 	print "Index ", count, " ", count - indexWrong, " ",(count - indexWrong)/count
 	print "Part ", partCount, " ", partCount - partWrong, " ",(partCount - partWrong)/partCount
