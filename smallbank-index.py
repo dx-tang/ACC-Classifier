@@ -37,12 +37,13 @@ def ParseTrain(f):
 				ok1 = 1
 			if y > 2:
 				ok2 = 1
-		if ok1 == 1:
-			X.append(tmp)
-			Y.extend([0])
-		if ok2 == 1:
+		if columns[FEATURELEN] > 2:
 			X.append(tmp)
 			Y.extend([1])
+		#if ok1 == 1:
+		else:
+			X.append(tmp)
+			Y.extend([0])
 
 	return np.array(X), np.array(Y)
 
@@ -72,7 +73,7 @@ def main():
 	X_train, Y_train = ParseTrain(sys.argv[1])
 	X_test, Y_test = ParseTest(sys.argv[2])
 
-	indexclf = tree.DecisionTreeClassifier(max_depth=4)
+	indexclf = tree.DecisionTreeClassifier(max_depth=6)
 	#indexclf = RandomForestClassifier(max_depth=4, n_estimators=10, max_features=1)
 	indexclf = indexclf.fit(X_train, Y_train)
 
