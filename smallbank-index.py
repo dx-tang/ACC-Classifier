@@ -40,7 +40,6 @@ def ParseTrain(f):
 		if columns[FEATURELEN] > 2:
 			X.append(tmp)
 			Y.extend([1])
-		#if ok1 == 1:
 		else:
 			X.append(tmp)
 			Y.extend([0])

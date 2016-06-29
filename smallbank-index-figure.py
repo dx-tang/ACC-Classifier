@@ -49,7 +49,7 @@ def main():
     #X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(X, Y, test_size=0.2, random_state=99)
     #X_train, X_test, Y_train, Y_test = X, X, Y, Y
     #clf = tree.DecisionTreeClassifier()
-	clf = tree.DecisionTreeClassifier(max_depth=4)
+	clf = tree.DecisionTreeClassifier(max_depth=5)
     #clf = OneVsRestClassifier(SVC(kernel="linear", C=0.025))
 	#clf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
     #clf = SVC(kernel="linear", C=0.025)
