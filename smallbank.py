@@ -20,6 +20,16 @@ READRATE = 4
 HOMECONF = 5
 CONFRATE = 6
 
+TP = [0.0, 0.0, 0.0, 0.0]
+FP = [0.0, 0.0, 0.0, 0.0]
+TN = [0.0, 0.0, 0.0, 0.0]
+FN = [0.0, 0.0, 0.0, 0.0]
+
+Precision = [0.0, 0.0, 0.0, 0.0]
+Accuracy = [0.0, 0.0, 0.0, 0.0]
+Recall = [0.0, 0.0, 0.0, 0.0]
+F1 = [0.0, 0.0, 0.0, 0.0]
+
 def ParsePartTrain(f):
 	# X is feature, while Y is label
 	X = []
@@ -46,11 +56,18 @@ def ParseOCCTrain(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
 		tmp.extend(columns[RECAVG:CONFRATE])
-		X.append(tmp)
-		if (columns[FEATURELEN] == 1):
-			Y.extend([1])
-		elif (columns[FEATURELEN] == 2):
-			Y.extend([2])
+		for _, y in enumerate(columns[FEATURELEN:]):
+			if y == 1:
+				X.append(tmp)
+				Y.extend([1])
+			if y == 2:
+				X.append(tmp)
+				Y.extend([2])
+		#X.append(tmp)
+		#if (columns[FEATURELEN] == 1):
+		#	Y.extend([1])
+		#elif (columns[FEATURELEN] == 2):
+			#Y.extend([2])
 
 	return np.array(X), np.array(Y)
 
@@ -128,12 +145,18 @@ def PredictIndex(indexclf, X_test, Y_test):
 		for j, y in enumerate(Y_test):
 			if (y <= 2):
 				ok = 2
+				TP[0] += 1
 				break
+		if ok == 0:
+			FP[0] += 1
 	else:
 		for j, y in enumerate(Y_test):
 			if (y > 2):
 				ok = 2
+				TN[0] += 1
 				break
+		if ok == 0:
+			FN[0] += 1
 	return result[0], ok
 
 def PredictPure(pureclf, X_test, Y_test):
@@ -147,7 +170,16 @@ def PredictPure(pureclf, X_test, Y_test):
 	for j, y in enumerate(Y_test):
 		if (y == result[0]):
 			ok = 1
+			if result[0] == 4:
+				TP[1] += 1
+			else:
+				TN[1] += 1
 			break
+	if ok == 0:
+		if result[0] == 4:
+			FP[1] += 1
+		else:
+			FN[1] += 1
 	return result[0], ok
 
 def PredictPart(partclf, X_test, Y_test):
@@ -161,14 +193,20 @@ def PredictPart(partclf, X_test, Y_test):
 	if (result[0] == 0):
 		for j, y in enumerate(Y_test):
 			if (y == 0):
+				TP[2] += 1
 				ok = 1
 				break
+		if ok == 0:
+			FP[2] += 1
 	else:
 		for j, y in enumerate(Y_test):
 			if (y != 0):
+				TN[2] += 1
 				ok = 2
 				break
-	print result," ",Y_test," ",partclf.predict_proba(testPart)
+		if ok == 0:
+			FN[2] += 1
+	#print result," ",Y_test," ",partclf.predict_proba(testPart)
 	return result[0], ok
 
 def PredictOCC(occclf, X_test, Y_test):
@@ -181,7 +219,16 @@ def PredictOCC(occclf, X_test, Y_test):
 	for j, y in enumerate(Y_test):
 		if (y == result[0]):
 			ok = 1
+			if result[0] == 2:
+				TP[3] += 1
+			else:
+				TN[3] += 1
 			break
+	if ok == 0:
+		if result[0] == 2:
+			FP[3] += 1
+		else:
+			FN[3] += 1
 	return result[0], ok
 
 
@@ -200,7 +247,7 @@ def main():
 	#partclf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
 	partclf = partclf.fit(X_part_train, Y_part_train)
 
-	occclf = tree.DecisionTreeClassifier(max_depth=6)
+	occclf = tree.DecisionTreeClassifier(max_depth=4)
 	#occclf = RandomForestClassifier(max_depth=4, n_estimators=10, max_features=1)
 	occclf = occclf.fit(X_occ_train, Y_occ_train)
 	
@@ -223,7 +270,7 @@ def main():
 		count = count + 1
 		result, ok = PredictIndex(indexclf, val, Y_test[i])
 		if ok == 0: # Wrong
-			print i, " ", result, " ",Y_test[i]
+			#print i, " ", result, " ",Y_test[i]
 			indexWrong = indexWrong+1
 			continue
 		if result == 0: # Using Partitioned Index
@@ -235,12 +282,13 @@ def main():
 				occCount = occCount + 1
 				result, ok = PredictOCC(occclf, val, Y_test[i])
 				if ok == 0: #Wrong
+					#print i, " ", result, " ",Y_test[i]
 					occWrong = occWrong + 1
 		else: # Using Shared Index
 			pureCount = pureCount + 1
 			result, ok = PredictPure(pureclf, val, Y_test[i])
 			if ok == 0:
-				print i, " ", result, " ",Y_test[i]
+				#print i, " ", result, " ",Y_test[i]
 				pureWrong = pureWrong + 1
 		
 	totalWrong = indexWrong + partWrong + occWrong + pureWrong
@@ -250,11 +298,23 @@ def main():
 		occCount = 1
 	if pureCount == 0:
 		pureCount = 1
+
+	for i, _ in enumerate(TP):
+		Precision[i] = TP[i]/(TP[i]+FP[i])
+		Recall[i] = TP[i]/(TP[i]+FN[i])
+		Accuracy[i] = (TP[i] + TN[i])/(TP[i] + TN[i] + FP[i] + FN[i])
+		F1[i] = 2*Precision[i]*Recall[i]/(Precision[i] + Recall[i])
+
 	print "Total ", count, " ", count - totalWrong, " ",(count - totalWrong)/count
+	print "PURE: ", pureCount, " ", pureCount - pureWrong, " ", (pureCount - pureWrong)/pureCount
 	print "Index ", count, " ", count - indexWrong, " ",(count - indexWrong)/count
 	print "Part ", partCount, " ", partCount - partWrong, " ",(partCount - partWrong)/partCount
 	print "OCC: ", occCount, " ", occCount - occWrong, " ", (occCount - occWrong)/occCount
-	print "PURE: ", pureCount, " ", pureCount - pureWrong, " ", (pureCount - pureWrong)/pureCount
+
+	print "C1\t", Accuracy[0], "\t", Precision[0], "\t", Recall[0], "\t", F1[0]
+	print "C2\t", Accuracy[1], "\t", Precision[1], "\t", Recall[1], "\t", F1[1]
+	print "C3\t", Accuracy[2], "\t", Precision[2], "\t", Recall[2], "\t", F1[2]
+	print "C4\t", Accuracy[3], "\t", Precision[3], "\t", Recall[3], "\t", F1[3]
 
 if __name__ == "__main__":
     main()
