@@ -29,19 +29,27 @@ def ParseTraining(f):
 	for line in open(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
-		tmp.extend(columns[PARTAVG:RECAVG])
-		tmp.extend(columns[LATENCY:READRATE])
-		tmp.extend(columns[HOMECONF:CONFRATE])
+		tmp.extend(columns[RECAVG:LATENCY])
+		tmp.extend(columns[READRATE:HOMECONF])
+		tmp.extend(columns[CONFRATE:FEATURELEN])
 		X.append(tmp)
-		if (columns[FEATURELEN] <= 2):
-			Y.extend([0])
-		else:
-			Y.extend([1])
+		if (columns[FEATURELEN] == 3):
+			Y.extend([3])
+			#if len(columns[FEATURELEN:]) == 2:
+			#	if columns[FEATURELEN+1] == 2:
+			#		X.append(tmp)
+			#		Y.extend([2])
+		elif (columns[FEATURELEN] == 4):
+			Y.extend([4])
+			if len(columns[FEATURELEN:]) == 2:
+				if columns[FEATURELEN+1] == 3:
+					X.append(tmp)
+					Y.extend([3])
 
 	return np.array(X), np.array(Y)
 
 def main():
-	if (len(sys.argv) < 3):
+	if (len(sys.argv) < 2):
 		print("One Argument Required; Training Set; Testing Set")
 		return
 	X_train, Y_train = ParseTraining(sys.argv[1])
@@ -59,14 +67,14 @@ def main():
 
 
     #feature_names = ["partAvg", "recavg", "latency", "ReadRate"]
-	feature_names = ["partConf", "partSkew", "latency", "homeconf"]
+	feature_names = ["RECAVG", "READRATE", "CONFRATE"]
     #feature_names = ["partAvg", "recAvg", "recVar", "ReadRate"]
     #feature_names = ["partAvg", "recAvg", "recVar"]
     #feature_names = ["recAvg", "recVar", "Read"]
     #feature_names = ["partAvg", "recVar"]
     ##class_names = ["Partition", "OCC", "2PL"]
-    #class_names = ["OCC", "2PL"]
-	class_names = ["Partition", "No Partition"]
+	class_names = ["OCC", "2PL"]
+	#class_names = ["Partition", "No Partition"]
 	dot_data = StringIO()
 	tree.export_graphviz(clf, out_file=dot_data,
 						feature_names=feature_names,
@@ -74,7 +82,7 @@ def main():
 						filled=True, rounded=True,
 						special_characters=True)
 	graph = pydot.graph_from_dot_data(dot_data.getvalue())
-	graph.write_png("partition.png")
+	graph.write_png("occ.png")
 	print(clf.score(X_test, Y_test))
     #predictArray = clf.predict(X_test)
     #print(predictArray)
