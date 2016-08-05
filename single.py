@@ -150,7 +150,7 @@ def main():
 	#partclf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
 	partclf = partclf.fit(X_part_train, Y_part_train)
 
-	occclf = tree.DecisionTreeClassifier(max_depth=6)
+	occclf = tree.DecisionTreeClassifier(max_depth=4)
 	#occclf = RandomForestClassifier(max_depth=4, n_estimators=10, max_features=1)
 	occclf = occclf.fit(X_occ_train, Y_occ_train)
 
