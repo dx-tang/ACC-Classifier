@@ -10,6 +10,7 @@ from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.multiclass import OneVsRestClassifier
 
+
 FEATURESTART = 5
 FEATURELEN = 7
 PARTAVG = 0
@@ -20,15 +21,18 @@ READRATE = 4
 HOMECONF = 5
 CONFRATE = 6
 
-TP = [0.0, 0.0, 0.0, 0.0]
-FP = [0.0, 0.0, 0.0, 0.0]
-TN = [0.0, 0.0, 0.0, 0.0]
-FN = [0.0, 0.0, 0.0, 0.0]
+PARTCLF = 0
+OCCCLF = 1
 
-Precision = [0.0, 0.0, 0.0, 0.0]
-Accuracy = [0.0, 0.0, 0.0, 0.0]
-Recall = [0.0, 0.0, 0.0, 0.0]
-F1 = [0.0, 0.0, 0.0, 0.0]
+TP = [0.0, 0.0]
+FP = [0.0, 0.0]
+TN = [0.0, 0.0]
+FN = [0.0, 0.0]
+
+Precision = [0.0, 0.0]
+Accuracy = [0.0, 0.0]
+Recall = [0.0, 0.0]
+F1 = [0.0, 0.0]
 
 def ParsePartTrain(f):
 	# X is feature, while Y is label
@@ -37,8 +41,9 @@ def ParsePartTrain(f):
 	for line in open(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
-		tmp.extend(columns[PARTAVG:PARTSKEW])
-		tmp.extend(columns[RECAVG:CONFRATE])
+		tmp.extend(columns[PARTAVG:RECAVG])
+		tmp.extend(columns[RECAVG:LATENCY])
+		tmp.extend(columns[READRATE:CONFRATE])
 		X.append(tmp)
 		ok = 1
 		label = columns[FEATURELEN:]
@@ -48,23 +53,9 @@ def ParsePartTrain(f):
 			Y.extend([1])
 	return np.array(X), np.array(Y)
 
+
 def ParseOCCTrain(f):
 	# X is feature, while Y is label
-	X = []
-	Y = []
-	for line in open(f):
-		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
-		tmp = []
-		tmp.extend(columns[RECAVG:CONFRATE])
-		X.append(tmp)
-		if (columns[FEATURELEN] == 1):
-			Y.extend([1])
-		elif (columns[FEATURELEN] == 2):
-			Y.extend([2])
-
-	return np.array(X), np.array(Y)
-
-def ParsePureTrain(f):
 	X = []
 	Y = []
 	for line in open(f):
@@ -74,35 +65,12 @@ def ParsePureTrain(f):
 		tmp.extend(columns[READRATE:HOMECONF])
 		tmp.extend(columns[CONFRATE:FEATURELEN])
 		X.append(tmp)
-		if (columns[FEATURELEN] == 3):
-			Y.extend([3])
-		elif (columns[FEATURELEN] == 4):
-			Y.extend([4])
-			if len(columns[FEATURELEN:]) == 2:
-				if columns[FEATURELEN+1] == 3:
-					X.append(tmp)
-					Y.extend([3])
-
-	return np.array(X), np.array(Y)
-
-def ParseIndexTrain(f):
-	# X is feature, while Y is label
-	X = []
-	Y = []
-	for line in open(f):
-		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
-		tmp = []
-		tmp.extend(columns[PARTAVG:RECAVG])
-		tmp.extend(columns[LATENCY:READRATE])
-		tmp.extend(columns[HOMECONF:CONFRATE])
-		if columns[FEATURELEN] > 2:
-			X.append(tmp)
+		if (columns[FEATURELEN] == 1):
 			Y.extend([1])
-		else:
-			X.append(tmp)
-			Y.extend([0])
-	return np.array(X), np.array(Y)
+		elif (columns[FEATURELEN] == 2):
+			Y.extend([2])
 
+	return np.array(X), np.array(Y)
 
 def ParseTest(f):
     # X is feature, while Y is label
@@ -117,63 +85,11 @@ def ParseTest(f):
 	return np.array(X), np.array(Y)
 
 # ok = 0 wrong prediction; ok = 1 right prediction; ok = 2 continue prediction
-def PredictIndex(indexclf, X_test, Y_test):
-	tmp=[]
-	tmp.extend(X_test[PARTAVG:RECAVG])
-	tmp.extend(X_test[LATENCY:READRATE])
-	tmp.extend(X_test[HOMECONF:CONFRATE])
-	testIndex = []
-	testIndex.append(tmp)
-	result = indexclf.predict(testIndex)
-	print indexclf.predict_proba(testIndex)
-	ok = 0
-	if result[0] == 0:
-		for j, y in enumerate(Y_test):
-			if (y <= 2):
-				ok = 2
-				TP[0] += 1
-				break
-		if ok == 0:
-			FP[0] += 1
-	else:
-		for j, y in enumerate(Y_test):
-			if (y > 2):
-				ok = 2
-				TN[0] += 1
-				break
-		if ok == 0:
-			FN[0] += 1
-	return result[0], ok
-
-def PredictPure(pureclf, X_test, Y_test):
-	tmp=[]
-	tmp.extend(X_test[RECAVG:LATENCY])
-	tmp.extend(X_test[READRATE:HOMECONF])
-	tmp.extend(X_test[CONFRATE:FEATURELEN])
-	testPure = []
-	testPure.append(tmp)
-	result = pureclf.predict(testPure)
-	print result
-	ok = 0
-	for j, y in enumerate(Y_test):
-		if (y == result[0]):
-			ok = 1
-			if result[0] == 4:
-				TP[1] += 1
-			else:
-				TN[1] += 1
-			break
-	if ok == 0:
-		if result[0] == 4:
-			FP[1] += 1
-		else:
-			FN[1] += 1
-	return result[0], ok
-
 def PredictPart(partclf, X_test, Y_test):
 	tmp=[]
-	tmp.extend(X_test[PARTAVG:PARTSKEW])
-	tmp.extend(X_test[RECAVG:CONFRATE])
+	tmp.extend(X_test[PARTAVG:RECAVG])
+	tmp.extend(X_test[RECAVG:LATENCY])
+	tmp.extend(X_test[READRATE:CONFRATE])
 	testPart = []
 	testPart.append(tmp)
 	result = partclf.predict(testPart)
@@ -181,25 +97,27 @@ def PredictPart(partclf, X_test, Y_test):
 	if (result[0] == 0):
 		for j, y in enumerate(Y_test):
 			if (y == 0):
-				TP[2] += 1
+				TP[PARTCLF] += 1
 				ok = 1
 				break
 		if ok == 0:
-			FP[2] += 1
+			FP[PARTCLF] += 1
 	else:
 		for j, y in enumerate(Y_test):
 			if (y != 0):
-				TN[2] += 1
+				TN[PARTCLF] += 1
 				ok = 2
 				break
 		if ok == 0:
-			FN[2] += 1
+			FN[PARTCLF] += 1
 	#print result," ",Y_test," ",partclf.predict_proba(testPart)
 	return result[0], ok
 
 def PredictOCC(occclf, X_test, Y_test):
 	tmp=[]
-	tmp.extend(X_test[RECAVG:CONFRATE])
+	tmp.extend(X_test[RECAVG:LATENCY])
+	tmp.extend(X_test[READRATE:HOMECONF])
+	tmp.extend(X_test[CONFRATE:FEATURELEN])
 	testOCC = []
 	testOCC.append(tmp)
 	result = occclf.predict(testOCC)
@@ -208,91 +126,59 @@ def PredictOCC(occclf, X_test, Y_test):
 		if (y == result[0]):
 			ok = 1
 			if result[0] == 2:
-				TP[3] += 1
+				TP[OCCCLF] += 1
 			else:
-				TN[3] += 1
+				TN[OCCCLF] += 1
 			break
 	if ok == 0:
 		if result[0] == 2:
-			FP[3] += 1
+			FP[OCCCLF] += 1
 		else:
-			FN[3] += 1
+			FN[OCCCLF] += 1
 	return result[0], ok
 
 
 def main():
-	if (len(sys.argv) < 6):
-		print("Five Argument Required: Part-training; OCC-training; Pure-training; Index-training; Tests")
+	if (len(sys.argv) != 4):
+		print("Three Arguments Required: Part-training; OCC-training; Tests")
 		return
 
 	X_part_train, Y_part_train = ParsePartTrain(sys.argv[1])
 	X_occ_train, Y_occ_train = ParseOCCTrain(sys.argv[2])
-	X_pure_train, Y_pure_train = ParsePureTrain(sys.argv[3])
-	X_index_train, Y_index_train = ParseIndexTrain(sys.argv[4])
-	X_test, Y_test = ParseTest(sys.argv[5])
+	X_test, Y_test = ParseTest(sys.argv[3])
 
 	partclf = tree.DecisionTreeClassifier(max_depth=6)
 	#partclf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
 	partclf = partclf.fit(X_part_train, Y_part_train)
 
-	occclf = tree.DecisionTreeClassifier(max_depth=6)
+	occclf = tree.DecisionTreeClassifier(max_depth=4)
 	#occclf = RandomForestClassifier(max_depth=4, n_estimators=10, max_features=1)
 	occclf = occclf.fit(X_occ_train, Y_occ_train)
-	
-	pureclf = tree.DecisionTreeClassifier(max_depth=4)
-	pureclf = pureclf.fit(X_pure_train, Y_pure_train)
-
-	indexclf = tree.DecisionTreeClassifier(max_depth=6)
-	indexclf = indexclf.fit(X_index_train, Y_index_train)
 
 	count = 0.0
 	wrong = 0.0
-	occCount = 0.0
-	occWrong = 0.0
 	partCount = 0.0
 	partWrong = 0.0
-	indexWrong = 0.0
-	pureCount = 0.0
-	pureWrong = 0.0
-	testIndex = [0.0, 0.5, 0, 148.40021228008106, 0, 0.0, 0]
-	print PredictIndex(indexclf, testIndex, [4])
-	return
+	occCount = 0.0
+	occWrong = 0.0
 	for i, val in enumerate(X_test):
 		count = count + 1
-		result, ok = PredictIndex(indexclf, val, Y_test[i])
-		if ok == 0: # Wrong
-			#print i, " ", result, " ",Y_test[i]
-			indexWrong = indexWrong+1
-			continue
-		if result == 0: # Using Partitioned Index
-			partCount = partCount + 1
-			result, ok = PredictPart(partclf, val, Y_test[i])
+		partCount = partCount + 1
+		result, ok = PredictPart(partclf, val, Y_test[i])
+		if ok == 0: #Wrong
+			partWrong = partWrong + 1
+		elif ok == 2: # ok == 2
+			occCount = occCount + 1
+			result, ok = PredictOCC(occclf, val, Y_test[i])
 			if ok == 0: #Wrong
-				partWrong = partWrong + 1
-			elif ok == 2: # ok == 2
-				occCount = occCount + 1
-				result, ok = PredictOCC(occclf, val, Y_test[i])
-				if ok == 0: #Wrong
-					occWrong = occWrong + 1
-		else: # Using Shared Index
-			pureCount = pureCount + 1
-			result, ok = PredictPure(pureclf, val, Y_test[i])
-			if ok == 0:
-				pureWrong = pureWrong + 1
+				#print i, " ", result, " ",Y_test[i]
+				occWrong = occWrong + 1
 		
-	totalWrong = indexWrong + partWrong + occWrong + pureWrong
+	totalWrong = partWrong + occWrong
 	if partCount == 0:
 		partCount = 1
 	if occCount == 0:
 		occCount = 1
-	if pureCount == 0:
-		pureCount = 1
-
-	print "Total ", count, " ", count - totalWrong, " ",(count - totalWrong)/count
-	print "PURE: ", pureCount, " ", pureCount - pureWrong, " ", (pureCount - pureWrong)/pureCount
-	print "Index ", count, " ", count - indexWrong, " ",(count - indexWrong)/count
-	print "Part ", partCount, " ", partCount - partWrong, " ",(partCount - partWrong)/partCount
-	print "OCC: ", occCount, " ", occCount - occWrong, " ", (occCount - occWrong)/occCount
 
 	for i, _ in enumerate(TP):
 		Precision[i] = TP[i]/(TP[i]+FP[i])
@@ -300,11 +186,17 @@ def main():
 		Accuracy[i] = (TP[i] + TN[i])/(TP[i] + TN[i] + FP[i] + FN[i])
 		F1[i] = 2*Precision[i]*Recall[i]/(Precision[i] + Recall[i])
 
+	print "Total ", count, " ", count - totalWrong, " ",(count - totalWrong)/count
+	print "Part ", partCount, " ", partCount - partWrong, " ",(partCount - partWrong)/partCount
+	print "OCC: ", occCount, " ", occCount - occWrong, " ", (occCount - occWrong)/occCount
 
-	print "C1\t", Accuracy[0], "\t", Precision[0], "\t", Recall[0], "\t", F1[0]
-	print "C2\t", Accuracy[1], "\t", Precision[1], "\t", Recall[1], "\t", F1[1]
-	print "C3\t", Accuracy[2], "\t", Precision[2], "\t", Recall[2], "\t", F1[2]
-	print "C4\t", Accuracy[3], "\t", Precision[3], "\t", Recall[3], "\t", F1[3]
+	print "C1\t", Accuracy[PARTCLF], "\t", Precision[PARTCLF], "\t", Recall[PARTCLF], "\t", F1[PARTCLF]
+	print "C2\t", Accuracy[OCCCLF], "\t", Precision[OCCCLF], "\t", Recall[OCCCLF], "\t", F1[OCCCLF]
+
+	print "TP ", TP
+	print "TN ", TN
+	print "FP ", FP
+	print "FN ", FN
 
 if __name__ == "__main__":
     main()
