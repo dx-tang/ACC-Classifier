@@ -55,7 +55,8 @@ def ParseOCCTrain(f):
 	for line in open(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
-		tmp.extend(columns[RECAVG:CONFRATE])
+		tmp.extend(columns[RECAVG:LATENCY])
+		tmp.extend(columns[READRATE:CONFRATE])
 		for _, y in enumerate(columns[FEATURELEN:]):
 			if y == 1:
 				X.append(tmp)
@@ -77,16 +78,18 @@ def ParsePureTrain(f):
 	for line in open(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
-		tmp.extend(columns[RECAVG:HOMECONF])
+		tmp.extend(columns[RECAVG:LATENCY])
+		tmp.extend(columns[READRATE:HOMECONF])
 		tmp.extend(columns[CONFRATE:FEATURELEN])
-		X.append(tmp)
 		if (columns[FEATURELEN] == 3):
+			X.append(tmp)
 			Y.extend([3])
-			if len(columns[FEATURELEN:]) == 2:
-				if columns[FEATURELEN+1] == 4:
-					X.append(tmp)
-					Y.extend([4])
+			#if len(columns[FEATURELEN:]) == 2:
+			#	if columns[FEATURELEN+1] == 4:
+			#		X.append(tmp)
+			#		Y.extend([4])
 		elif (columns[FEATURELEN] == 4):
+			X.append(tmp)
 			Y.extend([4])
 
 	return np.array(X), np.array(Y)
@@ -161,7 +164,8 @@ def PredictIndex(indexclf, X_test, Y_test):
 
 def PredictPure(pureclf, X_test, Y_test):
 	tmp=[]
-	tmp.extend(X_test[RECAVG:HOMECONF])
+	tmp.extend(X_test[RECAVG:LATENCY])
+	tmp.extend(X_test[READRATE:HOMECONF])
 	tmp.extend(X_test[CONFRATE:FEATURELEN])
 	testPure = []
 	testPure.append(tmp)
@@ -211,7 +215,8 @@ def PredictPart(partclf, X_test, Y_test):
 
 def PredictOCC(occclf, X_test, Y_test):
 	tmp=[]
-	tmp.extend(X_test[RECAVG:CONFRATE])
+	tmp.extend(X_test[RECAVG:LATENCY])
+	tmp.extend(X_test[READRATE:CONFRATE])
 	testOCC = []
 	testOCC.append(tmp)
 	result = occclf.predict(testOCC)
@@ -288,7 +293,7 @@ def main():
 			pureCount = pureCount + 1
 			result, ok = PredictPure(pureclf, val, Y_test[i])
 			if ok == 0:
-				#print i, " ", result, " ",Y_test[i]
+				print i, " ", result, " ",Y_test[i]
 				pureWrong = pureWrong + 1
 		
 	totalWrong = indexWrong + partWrong + occWrong + pureWrong

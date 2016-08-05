@@ -32,24 +32,33 @@ def ParseTraining(f):
 		tmp.extend(columns[PARTAVG:RECAVG])
 		tmp.extend(columns[LATENCY:READRATE])
 		tmp.extend(columns[HOMECONF:CONFRATE])
-		X.append(tmp)
-		if (columns[FEATURELEN] <= 2):
+		ok1 = 0
+		ok2 = 0
+		for _, y in enumerate(columns[FEATURELEN:]):
+			if y <= 2:
+				ok1 = 1
+			if y > 2:
+				ok2 = 1
+		if ok1 == 1:
+			X.append(tmp)
 			Y.extend([0])
-		else:
+		if columns[FEATURELEN] > 2:
+			X.append(tmp)
 			Y.extend([1])
 
 	return np.array(X), np.array(Y)
 
+
 def main():
-	if (len(sys.argv) < 3):
-		print("One Argument Required; Training Set; Testing Set")
+	if (len(sys.argv) < 2):
+		print("One Argument Required; Training Set")
 		return
 	X_train, Y_train = ParseTraining(sys.argv[1])
-	X_test, Y_test = ParseTraining(sys.argv[2])
+	#X_test, Y_test = ParseTesting(sys.argv[2])
     #X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(X, Y, test_size=0.2, random_state=99)
     #X_train, X_test, Y_train, Y_test = X, X, Y, Y
     #clf = tree.DecisionTreeClassifier()
-	clf = tree.DecisionTreeClassifier(max_depth=5)
+	clf = tree.DecisionTreeClassifier(max_depth=4)
     #clf = OneVsRestClassifier(SVC(kernel="linear", C=0.025))
 	#clf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
     #clf = SVC(kernel="linear", C=0.025)
@@ -59,14 +68,14 @@ def main():
 
 
     #feature_names = ["partAvg", "recavg", "latency", "ReadRate"]
-	feature_names = ["partConf", "partSkew", "latency", "homeconf"]
+	feature_names = ["partavg", "partvar", "latency", "homeconf"]
     #feature_names = ["partAvg", "recAvg", "recVar", "ReadRate"]
     #feature_names = ["partAvg", "recAvg", "recVar"]
     #feature_names = ["recAvg", "recVar", "Read"]
     #feature_names = ["partAvg", "recVar"]
     ##class_names = ["Partition", "OCC", "2PL"]
     #class_names = ["OCC", "2PL"]
-	class_names = ["Partition", "No Partition"]
+	class_names = ["Part", "Share"]
 	dot_data = StringIO()
 	tree.export_graphviz(clf, out_file=dot_data,
 						feature_names=feature_names,
@@ -75,7 +84,8 @@ def main():
 						special_characters=True)
 	graph = pydot.graph_from_dot_data(dot_data.getvalue())
 	graph.write_png("partition.png")
-	print(clf.score(X_test, Y_test))
+	print clf.predict_proba([[0,0.4,144,0]])
+	#print(clf.score(X_test, Y_test))
     #predictArray = clf.predict(X_test)
     #print(predictArray)
     #for i, val in enumerate(predictArray):

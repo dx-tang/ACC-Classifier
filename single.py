@@ -59,10 +59,6 @@ def ParseOCCTrain(f):
 		X.append(tmp)
 		if (columns[FEATURELEN] == 1):
 			Y.extend([1])
-			#if len(columns[FEATURELEN:]) == 2:
-			#	if columns[FEATURELEN+1] == 2:
-			#		X.append(tmp)
-			#		Y.extend([2])
 		elif (columns[FEATURELEN] == 2):
 			Y.extend([2])
 			if len(columns[FEATURELEN:]) == 2:
@@ -292,17 +288,18 @@ def main():
 	if pureCount == 0:
 		pureCount = 1
 
+	print "Total ", count, " ", count - totalWrong, " ",(count - totalWrong)/count
+	print "Index ", count, " ", count - indexWrong, " ",(count - indexWrong)/count
+	print "PURE: ", pureCount, " ", pureCount - pureWrong, " ", (pureCount - pureWrong)/pureCount
+	print "Part ", partCount, " ", partCount - partWrong, " ",(partCount - partWrong)/partCount
+	print "OCC: ", occCount, " ", occCount - occWrong, " ", (occCount - occWrong)/occCount
+
 	for i, _ in enumerate(TP):
 		Precision[i] = TP[i]/(TP[i]+FP[i])
 		Recall[i] = TP[i]/(TP[i]+FN[i])
 		Accuracy[i] = (TP[i] + TN[i])/(TP[i] + TN[i] + FP[i] + FN[i])
 		F1[i] = 2*Precision[i]*Recall[i]/(Precision[i] + Recall[i])
 
-	print "Total ", count, " ", count - totalWrong, " ",(count - totalWrong)/count
-	print "Index ", count, " ", count - indexWrong, " ",(count - indexWrong)/count
-	print "PURE: ", pureCount, " ", pureCount - pureWrong, " ", (pureCount - pureWrong)/pureCount
-	print "Part ", partCount, " ", partCount - partWrong, " ",(partCount - partWrong)/partCount
-	print "OCC: ", occCount, " ", occCount - occWrong, " ", (occCount - occWrong)/occCount
 
 	print "C1\t", Accuracy[0], "\t", Precision[0], "\t", Recall[0], "\t", F1[0]
 	print "C2\t", Accuracy[1], "\t", Precision[1], "\t", Recall[1], "\t", F1[1]

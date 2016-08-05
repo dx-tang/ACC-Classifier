@@ -70,17 +70,18 @@ def ParsePureTrain(f):
 	for line in open(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
-		tmp.extend(columns[RECAVG:HOMECONF])
+		tmp.extend(columns[RECAVG:LATENCY])
+		tmp.extend(columns[READRATE:HOMECONF])
 		tmp.extend(columns[CONFRATE:FEATURELEN])
 		X.append(tmp)
 		if (columns[FEATURELEN] == 3):
 			Y.extend([3])
-			if len(columns[FEATURELEN:]) == 2:
-				if columns[FEATURELEN+1] == 4:
-					X.append(tmp)
-					Y.extend([4])
 		elif (columns[FEATURELEN] == 4):
 			Y.extend([4])
+			if len(columns[FEATURELEN:]) == 2:
+				if columns[FEATURELEN+1] == 3:
+					X.append(tmp)
+					Y.extend([3])
 
 	return np.array(X), np.array(Y)
 
@@ -94,13 +95,6 @@ def ParseIndexTrain(f):
 		tmp.extend(columns[PARTAVG:RECAVG])
 		tmp.extend(columns[LATENCY:READRATE])
 		tmp.extend(columns[HOMECONF:CONFRATE])
-		ok1 = 0
-		ok2 = 0
-		for _, y in enumerate(columns[FEATURELEN:]):
-			if y <= 2:
-				ok1 = 1
-			if y > 2:
-				ok2 = 1
 		if columns[FEATURELEN] > 2:
 			X.append(tmp)
 			Y.extend([1])
@@ -131,7 +125,7 @@ def PredictIndex(indexclf, X_test, Y_test):
 	testIndex = []
 	testIndex.append(tmp)
 	result = indexclf.predict(testIndex)
-	#print indexclf.predict_proba(testIndex)
+	print indexclf.predict_proba(testIndex)
 	ok = 0
 	if result[0] == 0:
 		for j, y in enumerate(Y_test):
@@ -153,11 +147,13 @@ def PredictIndex(indexclf, X_test, Y_test):
 
 def PredictPure(pureclf, X_test, Y_test):
 	tmp=[]
-	tmp.extend(X_test[RECAVG:HOMECONF])
+	tmp.extend(X_test[RECAVG:LATENCY])
+	tmp.extend(X_test[READRATE:HOMECONF])
 	tmp.extend(X_test[CONFRATE:FEATURELEN])
 	testPure = []
 	testPure.append(tmp)
 	result = pureclf.predict(testPure)
+	print result
 	ok = 0
 	for j, y in enumerate(Y_test):
 		if (y == result[0]):
@@ -246,7 +242,7 @@ def main():
 	pureclf = tree.DecisionTreeClassifier(max_depth=4)
 	pureclf = pureclf.fit(X_pure_train, Y_pure_train)
 
-	indexclf = tree.DecisionTreeClassifier(max_depth=5)
+	indexclf = tree.DecisionTreeClassifier(max_depth=6)
 	indexclf = indexclf.fit(X_index_train, Y_index_train)
 
 	count = 0.0
@@ -258,6 +254,9 @@ def main():
 	indexWrong = 0.0
 	pureCount = 0.0
 	pureWrong = 0.0
+	testIndex = [0.0, 0.5, 0, 148.40021228008106, 0, 0.0, 0]
+	print PredictIndex(indexclf, testIndex, [4])
+	return
 	for i, val in enumerate(X_test):
 		count = count + 1
 		result, ok = PredictIndex(indexclf, val, Y_test[i])
@@ -289,17 +288,18 @@ def main():
 	if pureCount == 0:
 		pureCount = 1
 
+	print "Total ", count, " ", count - totalWrong, " ",(count - totalWrong)/count
+	print "PURE: ", pureCount, " ", pureCount - pureWrong, " ", (pureCount - pureWrong)/pureCount
+	print "Index ", count, " ", count - indexWrong, " ",(count - indexWrong)/count
+	print "Part ", partCount, " ", partCount - partWrong, " ",(partCount - partWrong)/partCount
+	print "OCC: ", occCount, " ", occCount - occWrong, " ", (occCount - occWrong)/occCount
+
 	for i, _ in enumerate(TP):
 		Precision[i] = TP[i]/(TP[i]+FP[i])
 		Recall[i] = TP[i]/(TP[i]+FN[i])
 		Accuracy[i] = (TP[i] + TN[i])/(TP[i] + TN[i] + FP[i] + FN[i])
 		F1[i] = 2*Precision[i]*Recall[i]/(Precision[i] + Recall[i])
 
-	print "Total ", count, " ", count - totalWrong, " ",(count - totalWrong)/count
-	print "PURE: ", pureCount, " ", pureCount - pureWrong, " ", (pureCount - pureWrong)/pureCount
-	print "Index ", count, " ", count - indexWrong, " ",(count - indexWrong)/count
-	print "Part ", partCount, " ", partCount - partWrong, " ",(partCount - partWrong)/partCount
-	print "OCC: ", occCount, " ", occCount - occWrong, " ", (occCount - occWrong)/occCount
 
 	print "C1\t", Accuracy[0], "\t", Precision[0], "\t", Recall[0], "\t", F1[0]
 	print "C2\t", Accuracy[1], "\t", Precision[1], "\t", Recall[1], "\t", F1[1]
