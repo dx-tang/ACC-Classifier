@@ -32,19 +32,12 @@ def ParseTraining(f):
 		tmp.extend(columns[RECAVG:LATENCY])
 		tmp.extend(columns[READRATE:HOMECONF])
 		tmp.extend(columns[CONFRATE:FEATURELEN])
-		X.append(tmp)
-		if (columns[FEATURELEN] == 3):
-			Y.extend([3])
-			#if len(columns[FEATURELEN:]) == 2:
-			#	if columns[FEATURELEN+1] == 2:
-			#		X.append(tmp)
-			#		Y.extend([2])
-		elif (columns[FEATURELEN] == 4):
-			Y.extend([4])
-			if len(columns[FEATURELEN:]) == 2:
-				if columns[FEATURELEN+1] == 3:
-					X.append(tmp)
-					Y.extend([3])
+		if (columns[FEATURELEN] == 1):
+			X.append(tmp)
+			Y.extend([1])
+		elif (columns[FEATURELEN] == 2):
+			X.append(tmp)
+			Y.extend([2])
 
 	return np.array(X), np.array(Y)
 
@@ -53,11 +46,11 @@ def main():
 		print("One Argument Required; Training Set; Testing Set")
 		return
 	X_train, Y_train = ParseTraining(sys.argv[1])
-	X_test, Y_test = ParseTraining(sys.argv[2])
+	#X_test, Y_test = ParseTraining(sys.argv[2])
     #X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(X, Y, test_size=0.2, random_state=99)
     #X_train, X_test, Y_train, Y_test = X, X, Y, Y
     #clf = tree.DecisionTreeClassifier()
-	clf = tree.DecisionTreeClassifier(max_depth=4)
+	clf = tree.DecisionTreeClassifier(max_depth=3)
     #clf = OneVsRestClassifier(SVC(kernel="linear", C=0.025))
     #clf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
     #clf = SVC(kernel="linear", C=0.025)
@@ -83,7 +76,7 @@ def main():
 						special_characters=True)
 	graph = pydot.graph_from_dot_data(dot_data.getvalue())
 	graph.write_png("occ.png")
-	print(clf.score(X_test, Y_test))
+	#print(clf.score(X_test, Y_test))
     #predictArray = clf.predict(X_test)
     #print(predictArray)
     #for i, val in enumerate(predictArray):
