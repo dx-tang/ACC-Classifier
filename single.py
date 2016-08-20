@@ -146,7 +146,7 @@ def main():
 	X_occ_train, Y_occ_train = ParseOCCTrain(sys.argv[2])
 	X_test, Y_test = ParseTest(sys.argv[3])
 
-	partclf = tree.DecisionTreeClassifier(max_depth=4)
+	partclf = tree.DecisionTreeClassifier(max_depth=6)
 	#partclf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
 	partclf = partclf.fit(X_part_train, Y_part_train)
 

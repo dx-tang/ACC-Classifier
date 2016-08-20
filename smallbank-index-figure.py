@@ -30,20 +30,14 @@ def ParseTraining(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
 		tmp.extend(columns[PARTAVG:RECAVG])
-		tmp.extend(columns[LATENCY:READRATE])
-		tmp.extend(columns[HOMECONF:CONFRATE])
-		ok1 = 0
-		ok2 = 0
-		for _, y in enumerate(columns[FEATURELEN:]):
-			if y <= 2:
-				ok1 = 1
-			if y > 2:
-				ok2 = 1
-		if ok1 == 1:
-			X.append(tmp)
+		tmp.extend(columns[RECAVG:LATENCY])
+		tmp.extend(columns[READRATE:CONFRATE])
+		X.append(tmp)
+		ok = 1
+		label = columns[FEATURELEN:]
+		if label[0] == 0:
 			Y.extend([0])
-		if columns[FEATURELEN] > 2:
-			X.append(tmp)
+		else:
 			Y.extend([1])
 
 	return np.array(X), np.array(Y)
@@ -58,7 +52,7 @@ def main():
     #X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(X, Y, test_size=0.2, random_state=99)
     #X_train, X_test, Y_train, Y_test = X, X, Y, Y
     #clf = tree.DecisionTreeClassifier()
-	clf = tree.DecisionTreeClassifier(max_depth=4)
+	clf = tree.DecisionTreeClassifier(max_depth=6)
     #clf = OneVsRestClassifier(SVC(kernel="linear", C=0.025))
 	#clf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
     #clf = SVC(kernel="linear", C=0.025)
@@ -68,10 +62,10 @@ def main():
 
 
     #feature_names = ["partAvg", "recavg", "latency", "ReadRate"]
-	feature_names = ["partavg", "partvar", "latency", "homeconf"]
+	feature_names = ["partavg", "partvar", "recAvg", "readrate", "conf"]
     #feature_names = ["partAvg", "recAvg", "recVar", "ReadRate"]
     #feature_names = ["partAvg", "recAvg", "recVar"]
-    #feature_names = ["recAvg", "recVar", "Read"]
+	#feature_names = ["recAvg", "readrate", "conf"]
     #feature_names = ["partAvg", "recVar"]
     ##class_names = ["Partition", "OCC", "2PL"]
     #class_names = ["OCC", "2PL"]
@@ -84,7 +78,7 @@ def main():
 						special_characters=True)
 	graph = pydot.graph_from_dot_data(dot_data.getvalue())
 	graph.write_png("partition.png")
-	print clf.predict_proba([[0,0.4,144,0]])
+	#print clf.predict_proba([[0,0.4,144,0]])
 	#print(clf.score(X_test, Y_test))
     #predictArray = clf.predict(X_test)
     #print(predictArray)

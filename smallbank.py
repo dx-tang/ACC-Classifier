@@ -69,6 +69,12 @@ def ParseOCCTrain(f):
 		elif (columns[FEATURELEN] == 2):
 			Y.extend([2])
 
+		label = columns[FEATURELEN:]
+		if len(label) >= 2:
+			if label[1] == 1:
+				X.append(tmp)
+				Y.extend([1])
+
 	return np.array(X), np.array(Y)
 
 def ParseTest(f):
@@ -146,7 +152,7 @@ def main():
 	X_occ_train, Y_occ_train = ParseOCCTrain(sys.argv[2])
 	X_test, Y_test = ParseTest(sys.argv[3])
 
-	partclf = tree.DecisionTreeClassifier(max_depth=6)
+	partclf = tree.DecisionTreeClassifier(max_depth=3)
 	#partclf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
 	partclf = partclf.fit(X_part_train, Y_part_train)
 
@@ -165,6 +171,7 @@ def main():
 		partCount = partCount + 1
 		result, ok = PredictPart(partclf, val, Y_test[i])
 		if ok == 0: #Wrong
+			print i, " ", result, " ",Y_test[i]
 			partWrong = partWrong + 1
 		elif ok == 2: # ok == 2
 			occCount = occCount + 1
