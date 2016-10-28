@@ -29,17 +29,22 @@ def ParseTraining(f):
 	for line in open(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
+		tmp.extend(columns[PARTAVG:RECAVG])
 		tmp.extend(columns[RECAVG:LATENCY])
-		tmp.extend(columns[READRATE:HOMECONF])
-		tmp.extend(columns[CONFRATE:FEATURELEN])
-		if (columns[FEATURELEN] == 1):
-			X.append(tmp)
+		tmp.extend(columns[READRATE:CONFRATE])
+		X.append(tmp)
+		ok = 1
+		label = columns[FEATURELEN:]
+		if label[0] == 0:
+			Y.extend([0])
+		else:
 			Y.extend([1])
-		elif (columns[FEATURELEN] == 2):
-			X.append(tmp)
-			Y.extend([2])
+
 
 	return np.array(X), np.array(Y)
+
+
+
 
 def main():
 	if (len(sys.argv) < 2):
@@ -50,7 +55,7 @@ def main():
     #X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(X, Y, test_size=0.2, random_state=99)
     #X_train, X_test, Y_train, Y_test = X, X, Y, Y
     #clf = tree.DecisionTreeClassifier()
-	clf = tree.DecisionTreeClassifier(max_depth=3)
+	clf = tree.DecisionTreeClassifier(max_depth=6)
     #clf = OneVsRestClassifier(SVC(kernel="linear", C=0.025))
     #clf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
     #clf = SVC(kernel="linear", C=0.025)
@@ -60,14 +65,15 @@ def main():
 
 
     #feature_names = ["partAvg", "recavg", "latency", "ReadRate"]
-	feature_names = ["RECAVG", "READRATE", "CONFRATE"]
+	#feature_names = ["RECAVG", "READRATE", "CONFRATE"]
+	feature_names = ["PartAvg", "PartVar", "RECAVG", "READRATE", "CONFRATE"]
     #feature_names = ["partAvg", "recAvg", "recVar", "ReadRate"]
     #feature_names = ["partAvg", "recAvg", "recVar"]
     #feature_names = ["recAvg", "recVar", "Read"]
     #feature_names = ["partAvg", "recVar"]
     ##class_names = ["Partition", "OCC", "2PL"]
-	class_names = ["OCC", "2PL"]
-	#class_names = ["Partition", "No Partition"]
+	#class_names = ["OCC", "2PL"]
+	class_names = ["Partition", "No Partition"]
 	dot_data = StringIO()
 	tree.export_graphviz(clf, out_file=dot_data,
 						feature_names=feature_names,

@@ -9,6 +9,7 @@ from sklearn.svm import SVC
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.metrics import f1_score
 
 FEATURESTART = 7
 FEATURELEN = 7
@@ -33,6 +34,9 @@ Accuracy = [0.0, 0.0]
 Recall = [0.0, 0.0]
 F1 = [0.0, 0.0]
 
+Predict_Case = []
+Test_Case = []
+
 def ParsePartTrain(f):
 	# X is feature, while Y is label
 	X = []
@@ -50,6 +54,7 @@ def ParsePartTrain(f):
 			Y.extend([0])
 		else:
 			Y.extend([1])
+
 	return np.array(X), np.array(Y)
 
 def ParseOCCTrain(f):
@@ -66,6 +71,11 @@ def ParseOCCTrain(f):
 			Y.extend([1])
 		elif (columns[FEATURELEN] == 2):
 			Y.extend([2])
+
+		if (len(columns[FEATURELEN:])) == 2:
+			if columns[FEATURELEN] == 1:
+				X.append(tmp)
+				Y.extend([1])
 
 	return np.array(X), np.array(Y)
 
@@ -101,6 +111,11 @@ def PredictPart(partclf, X_test, Y_test):
 				break
 		if ok == 0:
 			FP[PARTCLF] += 1
+		# if Y_test[0] == 0:
+		# 	ok = 1
+		# 	TP[PARTCLF] += 1
+		# else:
+		# 	FP[PARTCLF] += 1
 	else:
 		for j, y in enumerate(Y_test):
 			if (y != 0):
@@ -109,6 +124,11 @@ def PredictPart(partclf, X_test, Y_test):
 				break
 		if ok == 0:
 			FN[PARTCLF] += 1
+		# if Y_test[0] != 0:
+		# 	ok = 2
+		# 	TN[PARTCLF] += 1
+		# else:
+		# 	FN[PARTCLF] += 1
 	#print result," ",Y_test," ",partclf.predict_proba(testPart)
 	return result[0], ok
 
@@ -129,6 +149,12 @@ def PredictOCC(occclf, X_test, Y_test):
 			else:
 				TN[OCCCLF] += 1
 			break
+	# if Y_test[0] == result[0]:
+	# 	ok = 1
+	# 	if result[0] == 2:
+	# 		TP[OCCCLF] += 1
+	# 	else:
+	# 		TN[OCCCLF] += 1
 	if ok == 0:
 		if result[0] == 2:
 			FP[OCCCLF] += 1
@@ -136,6 +162,14 @@ def PredictOCC(occclf, X_test, Y_test):
 			FN[OCCCLF] += 1
 	return result[0], ok
 
+def GetResultOCC(occclf, X_test):
+	tmp=[]
+	tmp.extend(X_test[RECAVG:LATENCY])
+	tmp.extend(X_test[READRATE:HOMECONF])
+	tmp.extend(X_test[CONFRATE:FEATURELEN])
+	testOCC = []
+	testOCC.append(tmp)
+	return occclf.predict(testOCC)[0]
 
 def main():
 	if (len(sys.argv) != 4):
@@ -146,12 +180,12 @@ def main():
 	X_occ_train, Y_occ_train = ParseOCCTrain(sys.argv[2])
 	X_test, Y_test = ParseTest(sys.argv[3])
 
-	partclf = tree.DecisionTreeClassifier(max_depth=6)
-	#partclf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=1)
+	#partclf = tree.DecisionTreeClassifier(max_depth=6)
+	partclf = RandomForestClassifier(max_depth=6, n_estimators=10, max_features=3)
 	partclf = partclf.fit(X_part_train, Y_part_train)
 
-	occclf = tree.DecisionTreeClassifier(max_depth=3)
-	#occclf = RandomForestClassifier(max_depth=4, n_estimators=10, max_features=1)
+	#occclf = tree.DecisionTreeClassifier(max_depth=4)
+	occclf = RandomForestClassifier(max_depth=4, n_estimators=10, max_features=3)
 	occclf = occclf.fit(X_occ_train, Y_occ_train)
 
 	count = 0.0
@@ -161,18 +195,37 @@ def main():
 	occCount = 0.0
 	occWrong = 0.0
 
+	doubleCase = 0.0
+
 	for i, val in enumerate(X_test):
 		count = count + 1
 		partCount = partCount + 1
 		result, ok = PredictPart(partclf, val, Y_test[i])
 		if ok == 0: #Wrong
+			#print i, " ", result, " ", Y_test[i]
 			partWrong = partWrong + 1
-		elif ok == 2: # ok == 2
+			if result == 0:
+				Predict_Case.extend([0])
+			else:
+				Predict_Case.extend([GetResultOCC(occclf, val)])
+			Test_Case.extend([Y_test[i][0]])
+		elif ok == 1: # Predict PCC; Right
+			Predict_Case.extend([0])
+			Test_Case.extend([0])
+		else: # ok == 2
 			occCount = occCount + 1
 			result, ok = PredictOCC(occclf, val, Y_test[i])
 			if ok == 0: #Wrong
-				print i, " ", result, " ", Y_test[i]
+				#print i, " ", result, " ", Y_test[i]
 				occWrong = occWrong + 1
+				Predict_Case.extend([result])
+				Test_Case.extend([Y_test[i][0]])
+			else:
+				Predict_Case.extend([result])
+				Test_Case.extend([result])
+
+		if len(Y_test[i]) == 2:
+			doubleCase = doubleCase + 1
 
 		
 	totalWrong = partWrong + occWrong
@@ -181,9 +234,19 @@ def main():
 	if occCount == 0:
 		occCount = 1
 
+	FinalF1 = f1_score(Test_Case, Predict_Case, average='macro')
+	FinalAccuracy = (count - totalWrong)/count
+
+	outstr = str(FinalAccuracy) + "\t" + str(FinalF1) + "\n"
+	f = open('single.out', 'a')
+	f.write(outstr)
+
+	print "F1 ", FinalF1
+
 	print "Total ", count, " ", count - totalWrong, " ",(count - totalWrong)/count
 	print "Part ", partCount, " ", partCount - partWrong, " ",(partCount - partWrong)/partCount
 	print "OCC: ", occCount, " ", occCount - occWrong, " ", (occCount - occWrong)/occCount
+	print "Double: ", doubleCase/count
 
 	for i, _ in enumerate(TP):
 		Precision[i] = TP[i]/(TP[i]+FP[i])

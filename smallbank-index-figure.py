@@ -22,6 +22,28 @@ HOMECONF = 5
 CONFRATE = 6
 
 
+# def ParseTraining(f):
+# 	# X is feature, while Y is label
+# 	X = []
+# 	Y = []
+# 	for line in open(f):
+# 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
+# 		tmp = []
+# 		tmp.extend(columns[PARTAVG:RECAVG])
+# 		tmp.extend(columns[RECAVG:LATENCY])
+# 		tmp.extend(columns[READRATE:CONFRATE])
+
+# 		X.append(tmp)
+# 		ok = 1
+# 		label = columns[FEATURELEN:]
+# 		if label[0] == 0:
+# 			Y.extend([0])
+# 		else:
+# 			Y.extend([1])
+
+# 	return np.array(X), np.array(Y)
+
+
 def ParseTraining(f):
 	# X is feature, while Y is label
 	X = []
@@ -29,19 +51,22 @@ def ParseTraining(f):
 	for line in open(f):
 		columns = [float(x) for x in line.strip().split('\t')[FEATURESTART:]]
 		tmp = []
-		tmp.extend(columns[PARTAVG:RECAVG])
 		tmp.extend(columns[RECAVG:LATENCY])
-		tmp.extend(columns[READRATE:CONFRATE])
+		tmp.extend(columns[READRATE:HOMECONF])
+		tmp.extend(columns[CONFRATE:FEATURELEN])
 		X.append(tmp)
-		ok = 1
-		label = columns[FEATURELEN:]
-		if label[0] == 0:
-			Y.extend([0])
-		else:
+		if (columns[FEATURELEN] == 1):
 			Y.extend([1])
+		elif (columns[FEATURELEN] == 2):
+			Y.extend([2])
+
+		label = columns[FEATURELEN:]
+		if len(label) >= 2:
+			if label[1] == 1:
+				X.append(tmp)
+				Y.extend([1])
 
 	return np.array(X), np.array(Y)
-
 
 def main():
 	if (len(sys.argv) < 2):
@@ -61,15 +86,15 @@ def main():
 	clf = clf.fit(X_train, Y_train)
 
 
-    #feature_names = ["partAvg", "recavg", "latency", "ReadRate"]
+	#feature_names = ["recavg", "readratio", "conf"]
 	feature_names = ["partavg", "partvar", "recAvg", "readrate", "conf"]
     #feature_names = ["partAvg", "recAvg", "recVar", "ReadRate"]
     #feature_names = ["partAvg", "recAvg", "recVar"]
 	#feature_names = ["recAvg", "readrate", "conf"]
     #feature_names = ["partAvg", "recVar"]
     ##class_names = ["Partition", "OCC", "2PL"]
-    #class_names = ["OCC", "2PL"]
-	class_names = ["Part", "Share"]
+	class_names = ["PART", "SHARE"]
+	#class_names = ["OCC", "2PL"]
 	dot_data = StringIO()
 	tree.export_graphviz(clf, out_file=dot_data,
 						feature_names=feature_names,
@@ -77,7 +102,7 @@ def main():
 						filled=True, rounded=True,
 						special_characters=True)
 	graph = pydot.graph_from_dot_data(dot_data.getvalue())
-	graph.write_png("partition.png")
+	graph.write_png("part.png")
 	#print clf.predict_proba([[0,0.4,144,0]])
 	#print(clf.score(X_test, Y_test))
     #predictArray = clf.predict(X_test)
